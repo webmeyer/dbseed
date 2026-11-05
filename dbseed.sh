@@ -3,7 +3,7 @@
 
 set -Eeuo pipefail
 
-LOG_FILE="${LOG_FILE:-/var/log/dbseed/dbseed.log}"
+LOG_FILE="${LOG_FILE:-${XDG_STATE_HOME:-${HOME:-.}/.local/state}/dbseed/dbseed.log}"
 LOG_LEVEL="${LOG_LEVEL:-INFO}"
 MAX_LOG_SIZE="${MAX_LOG_SIZE:-10M}"
 
@@ -43,6 +43,11 @@ show_usage() {
 EOF
 }
 
+if [[ "${1-}" == "-h" || "${1-}" == "--help" ]]; then
+    show_usage
+    exit 0
+fi
+
 die() {
     print_error "$*"
     exit 1
@@ -78,7 +83,16 @@ init_logging() {
     esac
 
     if [[ -n "$LOG_FILE" ]]; then
-        mkdir -p "$(dirname -- "$LOG_FILE")" 2>/dev/null || true
+        local log_dir
+        log_dir="$(dirname -- "$LOG_FILE")"
+        if ! mkdir -p -- "$log_dir" 2>/dev/null; then
+            printf 'Не удалось создать каталог логов: %s\n' "$log_dir" >&2
+            return 1
+        fi
+        if ! ( : >> "$LOG_FILE" ) 2>/dev/null; then
+            printf 'Нет доступа для записи в лог: %s\n' "$LOG_FILE" >&2
+            return 1
+        fi
 
         if [[ -f "$LOG_FILE" ]]; then
             local max_bytes size stamp rotated
@@ -102,6 +116,8 @@ init_logging() {
             fi
         fi
     fi
+
+    return 0
 }
 
 log() {
@@ -162,7 +178,9 @@ require_value() {
     [[ -n "$value" ]] || die "Для параметра $option требуется значение"
 }
 
-init_logging
+if ! init_logging; then
+    exit 1
+fi
 print_info "Скрипт запущен"
 
 # Разбор аргументов.
