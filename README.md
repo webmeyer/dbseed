@@ -53,7 +53,7 @@ SQL выполняется с ON_ERROR_STOP=1: при ошибке скрипт 
 
 ```bash
 # Скачайте скрипт
-wget <link>
+wget https://raw.githubusercontent.com/webmeyer/dbseed/refs/heads/main/dbseed_0.2.sh
 
 # Дайте права на выполнение
 chmod +x dbseed.sh
