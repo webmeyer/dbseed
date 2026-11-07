@@ -357,8 +357,8 @@ cleanup_database() {
         psql_as_postgres \
             -v "dbname=$DB_NAME" \
             -d postgres \
-            -c 'DROP DATABASE :"dbname";'
-        print_success "БД '$DB_NAME' удалена"
+            drop_database
+	print_success "БД '$DB_NAME' удалена"
     else
         print_warning "БД '$DB_NAME' не найдена"
     fi
@@ -380,7 +380,7 @@ if [[ "$DB_EXISTS" == "1" ]]; then
         psql_as_postgres \
             -v "dbname=$DB_NAME" \
             -d postgres \
-            -c 'DROP DATABASE :"dbname";'
+            -c "DROP DATABASE \"$DB_NAME\";"
     else
         die "БД '$DB_NAME' уже существует. Для её удаления укажите --drop-old"
     fi
