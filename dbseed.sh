@@ -259,6 +259,7 @@ done
 
 if [[ -z "$DB_NAME" ]]; then
     DB_NAME="$(basename -- "$SQL_FILE" .sql)"
+    DB_NAME="${DB_NAME//[^a-zA-Z0-9_]/_}"
 fi
 
 if [[ ! "$DB_NAME" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
