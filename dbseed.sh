@@ -291,10 +291,19 @@ psql_as_postgres() {
 database_exists() {
     psql_as_postgres \
         -v "dbname=$DB_NAME" \
-        -d postgres -tA \
-        -c "SELECT CASE WHEN EXISTS (
-                SELECT 1 FROM pg_database WHERE datname = :'dbname'
-            ) THEN 1 ELSE 0 END;"
+        -d postgres -tA <<'SQL'
+SELECT CASE WHEN EXISTS (
+    SELECT 1 FROM pg_database WHERE datname = :'dbname'
+) THEN 1 ELSE 0 END;
+SQL
+}
+
+drop_database() {
+    psql_as_postgres \
+        -v "dbname=$DB_NAME" \
+        -d postgres <<'SQL'
+DROP DATABASE :"dbname";
+SQL
 }
 
 execute_task() {
