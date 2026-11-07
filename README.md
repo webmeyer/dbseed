@@ -38,22 +38,26 @@
 
 ## Как работает
 
-- Проверяет необходимые зависимости.
-- При необходимости удаляет пользовательские базы для пересоздания
-- Создаёт целевую базу данных.
-- Импортирует SQL-дамп.
-- Выполняет запросы и файлы запросов в порядке их указания.
-- При включённой опции выводит список таблиц.
-- При включённой опции открывает интерактивное подключение.
-- При включённой опции удаляет созданную базу — только если предыдущие шаги завершились успешно.
+Скрипт выполняет команды PostgreSQL через `sudo -u postgres`. Запускающий пользователь должен иметь право использовать `sudo` для пользователя `postgres`. `sudo` может запросить пароль системной учётной записи; пароль роли PostgreSQL зависит от настроек аутентификации сервера.
 
-SQL выполняется с ON_ERROR_STOP=1: при ошибке скрипт прекращает выполнение.
+Затем выполняется сценарий:
+
+- Проверка необходимых зависимостей;
+- При включённой опции: удаление пользовательской БД для дальнейшего пересоздания;
+- Создание целевой БД;
+- Импорт SQL-дампа;
+- Выполнение запросов и файлов запросов в порядке их указания;
+- При включённой опции: вывод списка таблиц;
+- При включённой опции: открытите интерактивного подключения (требуется pgcli).
+- При включённой опции: автоматическое удаление созданной БД после завершения работы (только если предыдущие шаги завершились успешно).
+
+SQL выполняется с `ON_ERROR_STOP=1`: при ошибке скрипт прекращает выполнение.
 
 ## 🚀 Быстрый старт
 
 ```bash
 # Скачайте скрипт
-wget https://raw.githubusercontent.com/webmeyer/dbseed/refs/heads/main/dbseed_0.2.sh
+wget https://raw.githubusercontent.com/webmeyer/dbseed/refs/heads/main/dbseed.sh
 
 # Дайте права на выполнение
 chmod +x dbseed.sh
@@ -72,7 +76,7 @@ sudo ln -s $(pwd)/dbseed.sh /usr/local/bin/dbseed.sh
 ./dbseed.sh backup.sql
 
 # 2. С именем БД
-./dbseed.sh backup.sql -d kb-test
+./dbseed.sh backup.sql -d dbname
 
 # 3. С удалением старой БД
 ./dbseed.sh backup.sql --drop-old
@@ -81,7 +85,7 @@ sudo ln -s $(pwd)/dbseed.sh /usr/local/bin/dbseed.sh
 ./dbseed.sh backup.sql -q "CREATE EXTENSION pg_trgm;"
 
 # 5. Всё вместе
-./dbseed.sh backup.sql -d kb-test --drop-old -q "CREATE EXTENSION pg_trgm;" -f migrations.sql --list-tables --auto-migrations
+./dbseed.sh backup.sql -d dbname --drop-old -q "CREATE EXTENSION pg_trgm;" -f dump.sql --list-tables
 
 # 6. Без подключения к БД
 ./dbseed.sh backup.sql --no-connect
@@ -116,7 +120,7 @@ sudo ln -s $(pwd)/dbseed.sh /usr/local/bin/dbseed.sh
 
 ### 4. С именем БД
 ```bash
-./dbseed.sh backup.sql -d kb-test \
+./dbseed.sh backup.sql -d dbname \
     -q "SET statement_timeout = 30000;" \
     -q "SET lock_timeout = 10000;"
 ```
@@ -124,7 +128,7 @@ sudo ln -s $(pwd)/dbseed.sh /usr/local/bin/dbseed.sh
 ## Работа с файлами запросов
 ### 1. Используя файл с SQL-запросами
 ```bash
-./dbseed.sh backup.sql -f /path/to/*.sql
+./dbseed.sh backup.sql -f /path/to/dump.sql
 ```
 
 ### 2. Несколько файлов с SQL-запросами
@@ -139,7 +143,7 @@ sudo ln -s $(pwd)/dbseed.sh /usr/local/bin/dbseed.sh
 ### 1. Несколько опций сразу
 ```bash
 ./dbseed.sh backup.sql \
-    -d kb-test \
+    -d dbname \
     --drop-old \
     -q "CREATE EXTENSION IF NOT EXISTS pg_trgm;" \
     -q "SET work_mem = '256MB';" \
@@ -166,8 +170,8 @@ sudo ln -s $(pwd)/dbseed.sh /usr/local/bin/dbseed.sh
 ## Логирование
 ### Настройка
 ```bash
-# Путь к лог-файлу (по умолчанию: /var/log/dbseed/dbseed.log)
-export LOG_FILE="/var/log/dbseed/dbseed.log"
+# Путь к лог-файлу (по умолчанию: $HOME/.local/state/dbseed/dbseed.log)
+export LOG_FILE="/path/to/dbseed.log"
 
 # Уровень логирования (DEBUG, INFO, WARN, ERROR)
 export LOG_LEVEL="INFO"
@@ -200,7 +204,7 @@ tail -f /var/log/dbseed/dbseed.log
 grep "ERROR" /var/log/dbseed/dbseed.log
 
 # Поиск по БД
-grep "kb-test" /var/log/dbseed/dbseed.log
+grep "dbname" /var/log/dbseed/dbseed.log
 
 # Статистика
 grep -c "INFO" /var/log/dbseed/dbseed.log
