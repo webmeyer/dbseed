@@ -285,8 +285,10 @@ check_dependencies() {
 }
 
 psql_as_postgres() {
-    sudo -u postgres psql -X -v ON_ERROR_STOP=1 "$@"
+    sudo -u postgres env -u PGUSER -u PGPASSWORD \
+        psql -X -U postgres -v ON_ERROR_STOP=1 "$@"
 }
+
 
 database_exists() {
     psql_as_postgres \
@@ -298,10 +300,12 @@ SELECT CASE WHEN EXISTS (
 SQL
 }
 
+
 drop_database() {
     psql_as_postgres \
+        -d postgres \
         -v "dbname=$DB_NAME" \
-        -d postgres <<'SQL'
+        -f - <<'SQL'
 DROP DATABASE :"dbname";
 SQL
 }
@@ -354,9 +358,6 @@ cleanup_database() {
     fi
 
     if [[ "$db_exists" == "1" ]]; then
-        psql_as_postgres \
-            -v "dbname=$DB_NAME" \
-            -d postgres \
             drop_database
 	print_success "БД '$DB_NAME' удалена"
     else
