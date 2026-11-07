@@ -259,6 +259,7 @@ done
 
 if [[ -z "$DB_NAME" ]]; then
     DB_NAME="$(basename -- "$SQL_FILE" .sql)"
+    DB_NAME="${DB_NAME//[^a-zA-Z0-9_]/_}"
 fi
 
 if [[ ! "$DB_NAME" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
@@ -290,10 +291,19 @@ psql_as_postgres() {
 database_exists() {
     psql_as_postgres \
         -v "dbname=$DB_NAME" \
-        -d postgres -tA \
-        -c "SELECT CASE WHEN EXISTS (
-                SELECT 1 FROM pg_database WHERE datname = :'dbname'
-            ) THEN 1 ELSE 0 END;"
+        -d postgres -tA <<'SQL'
+SELECT CASE WHEN EXISTS (
+    SELECT 1 FROM pg_database WHERE datname = :'dbname'
+) THEN 1 ELSE 0 END;
+SQL
+}
+
+drop_database() {
+    psql_as_postgres \
+        -v "dbname=$DB_NAME" \
+        -d postgres <<'SQL'
+DROP DATABASE :"dbname";
+SQL
 }
 
 execute_task() {
@@ -347,8 +357,8 @@ cleanup_database() {
         psql_as_postgres \
             -v "dbname=$DB_NAME" \
             -d postgres \
-            -c 'DROP DATABASE :"dbname";'
-        print_success "БД '$DB_NAME' удалена"
+            drop_database
+	print_success "БД '$DB_NAME' удалена"
     else
         print_warning "БД '$DB_NAME' не найдена"
     fi
@@ -370,7 +380,7 @@ if [[ "$DB_EXISTS" == "1" ]]; then
         psql_as_postgres \
             -v "dbname=$DB_NAME" \
             -d postgres \
-            -c 'DROP DATABASE :"dbname";'
+            -c "DROP DATABASE \"$DB_NAME\";"
     else
         die "БД '$DB_NAME' уже существует. Для её удаления укажите --drop-old"
     fi
