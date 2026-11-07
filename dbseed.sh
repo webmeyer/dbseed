@@ -19,7 +19,7 @@ CONFIRM_CLEANUP=false
 declare -a TASK_TYPES=()
 declare -a TASK_VALUES=()
 
-USE_PGCLI=false
+USE_USQL=false
 
 show_usage() {
     cat <<EOF
@@ -277,10 +277,10 @@ check_dependencies() {
     command -v createdb >/dev/null 2>&1 || die "createdb не найден. Установите клиент PostgreSQL."
     command -v sudo >/dev/null 2>&1 || die "sudo не найден, но скрипт использует sudo -u postgres."
 
-    if command -v pgcli >/dev/null 2>&1; then
-        USE_PGCLI=true
+    if command -v usql >/dev/null 2>&1; then
+        USE_USQL=true
     else
-        print_warning "pgcli не найден; для интерактивного подключения будет использован psql"
+        print_warning "usql не найден; для интерактивного подключения будет использован psql"
     fi
 }
 
@@ -406,8 +406,19 @@ fi
 if [[ "$POST_CONNECT" == true ]]; then
     print_info "Подключение к БД '$DB_NAME'"
 
-    if [[ "$USE_PGCLI" == true ]]; then
-        sudo -u postgres pgcli -U postgres -d "$DB_NAME"
+    if [[ "$USE_USQL" == true ]]; then
+        PG_SOCKET_DIR=$(
+            sudo -u postgres psql -X -Atqc 'SHOW unix_socket_directories' |
+                cut -d, -f1 |
+                xargs
+        )
+
+        if [[ -z "$PG_SOCKET_DIR" ]]; then
+            print_error "Не удалось определить каталог сокета PostgreSQL"
+            exit 1
+        fi
+
+        sudo -u postgres usql "pg+unix://$PG_SOCKET_DIR/$DB_NAME"
     else
         sudo -u postgres psql -X -d "$DB_NAME"
     fi
