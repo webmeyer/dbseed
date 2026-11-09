@@ -310,7 +310,7 @@ drop_database() {
     psql_as_postgres \
         -d postgres \
         -v "dbname=$DB_NAME" \
-        -f - <<'SQL'
+        -f - >/dev/null <<'SQL'
 DROP DATABASE :"dbname";
 SQL
 }
