@@ -9,18 +9,19 @@ MAX_LOG_SIZE="${MAX_LOG_SIZE:-10M}"
 
 DB_NAME=""
 SQL_FILE=""
+OUTPUT_FILE=""
 DROP_OLD=false
 LIST_TABLES=false
 POST_CONNECT=false
 CLEANUP=false
 CONFIRM_CLEANUP=false
+USE_USQL=false
+VERBOSE=false
 
 # Хранят SQL-запросы и файлы в порядке указания аргументов.
 declare -a TASK_TYPES=()
 declare -a TASK_VALUES=()
 
-USE_USQL=false
-VERBOSE=false
 
 show_usage() {
     cat <<EOF
@@ -30,6 +31,7 @@ show_usage() {
 Параметры:
     -d, --db-name <имя>      Имя базы данных (по умолчанию — имя файла без .sql)
     -o, --drop-old           Удалить существующую БД перед созданием
+    -O, --output-file FILE   Записывать результаты пользовательских SQL-запросов и файлов в FILE
     -l, --list-tables        Показать таблицы после создания
     -q, --query <запрос>     Выполнить SQL-запрос; можно указать несколько раз
     -f, --query-file <файл>  Выполнить SQL-файл; можно указать несколько раз
@@ -196,6 +198,16 @@ while (($# > 0)); do
             DROP_OLD=true
             shift
             ;;
+        -O|--output-file)
+            [[ $# -ge 2 && -n "$2" ]] || die "Для $1 укажите путь к файлу"
+            OUTPUT_FILE=$2
+            shift 2
+            ;;
+        --output-file=*)
+            OUTPUT_FILE=${1#*=}
+            [[ -n "$OUTPUT_FILE" ]] || die "Для --output-file укажите путь к файлу"
+            shift
+            ;;
         -v|--verbose)
             VERBOSE=true
             shift
@@ -254,6 +266,10 @@ while (($# > 0)); do
     esac
 done
 
+if [[ -n "$OUTPUT_FILE" ]]; then
+    : > "$OUTPUT_FILE" || die "Не удалось создать файл результатов: $OUTPUT_FILE"
+fi
+
 [[ -n "$SQL_FILE" ]] || {
     print_error "Не указан путь к SQL-файлу"
     show_usage
@@ -289,11 +305,19 @@ check_dependencies() {
     fi
 }
 
+
 psql_as_postgres() {
     sudo -u postgres env -u PGUSER -u PGPASSWORD \
         psql -X -U postgres -v ON_ERROR_STOP=1 "$@"
 }
 
+psql_with_output() {
+    if [[ -n "$OUTPUT_FILE" ]]; then
+        psql_as_postgres "$@" >> "$OUTPUT_FILE"
+    else
+        psql_as_postgres "$@"
+    fi
+}
 
 database_exists() {
     psql_as_postgres \
@@ -322,11 +346,13 @@ execute_task() {
     case "$type" in
         query)
             print_info "Выполнение SQL-запроса"
-            psql_as_postgres -d "$DB_NAME" -c "$value"
+            psql_with_output -d "$DB_NAME" -c "$value" ||
+                die "Ошибка выполнения SQL-запроса"
             ;;
         file)
             print_info "Выполнение запросов из файла: $value"
-            psql_as_postgres -d "$DB_NAME" -f "$value"
+            psql_with_output -d "$DB_NAME" -f "$value" ||
+                die "Ошибка выполнения SQL-запроса"
             ;;
         *)
             die "Внутренняя ошибка: неизвестный тип задачи '$type'"
@@ -434,6 +460,10 @@ if [[ "$POST_CONNECT" == true ]]; then
     else
         sudo -u postgres psql -X -d "$DB_NAME"
     fi
+fi
+
+if [[ -n "$OUTPUT_FILE" ]]; then
+    print_success "Результаты SQL записаны в файл: $OUTPUT_FILE"
 fi
 
 cleanup_database
