@@ -8,18 +8,18 @@
 
 - [dbseed.sh](#dbseedsh)
   - [📋 Описание](#-описание)
-  - [🚀 Как работает](#-как-работает)
+  - [💭 Как работает](#-как-работает)
   - [🚀 Быстрый старт](#-быстрый-старт)
-  - [🔄 Базовые команды для копирования](#-базовые-команды-для-копирования)
-  - [Логирование](#логирование)
+  - [✏️ Базовые команды для копирования](#-базовые-команды-для-копирования)
+  - [📊 Логирование](#логирование)
     - [Настройка](#настройка)
     - [Запуск с кастомным логированием](#запуск-с-кастомным-логированием)
     - [Просмотр логов](#просмотр-логов)
     - [Настройка ротации логов](#настройка-ротации-логов)
-  - [Траблшутинг](#траблшутинг)
-    - [1. Настройка pg_hba](#1-настройка-pg_hba)
-    - [2. Ошибка отсутствия роли](#2-ошибка-отсутствия-роли)
-  - [Лицензия](#лицензия)
+  - [🎯 Траблшутинг](#траблшутинг)
+    - [Настройка pg_hba](#настройка-pg_hba)
+    - [Ошибка отсутствия роли](#ошибка-отсутствия-роли)
+  - [📝 Лицензия](#лицензия)
 
 ## 📋 Описание
 
@@ -75,34 +75,34 @@ sudo ln -s $(pwd)/dbseed.sh /usr/local/bin/dbseed.sh
 ./dbseed.sh backup.sql -d dbname
 
 # 3. С удалением старой БД
-./dbseed.sh backup.sql --drop-old
+./dbseed.sh backup.sql --drop-old-db
 
 # 4. С SQL-запросом
 ./dbseed.sh backup.sql -q "CREATE EXTENSION pg_trgm;"
 
 # 5. Используя готовый файл с несколькими SQL-запросами
-./dbseed.sh backup.sql -f /path/to/dump.sql
+./dbseed.sh backup.sql -Q /path/to/dump.sql
 
 # 6. Несколько файлов с SQL-запросами (выполнятся в порядке указания)
 ./dbseed.sh backup.sql \
-    -f /path/to/01_schema.sql \
-    -f /path/to/02_data.sql \
-    -f /path/to/03_indexes.sql
+    -Q /path/to/01_schema.sql \
+    -Q /path/to/02_data.sql \
+    -Q /path/to/03_indexes.sql
 
 # 7. Комбинирование всех опций
 ./dbseed.sh backup.sql \
     -d dbname \
-    --drop-old \
+    --drop-old-db \
     -q "CREATE EXTENSION IF NOT EXISTS pg_trgm;" \
     -q "SET work_mem = '256MB';" \
-    -f /path/to/init.sql \
+    -Q /path/to/init.sql \
     --list-tables \
     --post-connect
 
 # 8. С подключением к интерактивному режиму
 ./dbseed.sh backup.sql --post-connect
 
-# 9. Удалить БД после работы с подтверждением (автоматическое подтверждение с доп.флагом --yes)
+# 9. Удалить БД после работы с подтверждением (автоматическое подтверждение с флагом -C, --cleanup-yes)
 ./dbseed.sh backup.sql --cleanup
 
 ```
@@ -138,7 +138,7 @@ LOG_FILE="" ./dbseed.sh backup.sql
 ### Просмотр логов
 ```bash
 # Просмотр последних записей
-tail -f /var/log/dbseed/dbseed.log
+tail -Q /var/log/dbseed/dbseed.log
 
 # Поиск ошибок
 grep "ERROR" /var/log/dbseed/dbseed.log
@@ -155,14 +155,14 @@ grep -c "ERROR" /var/log/dbseed/dbseed.log
 ```bash
 # Автоматическая ротация (при превышении MAX_LOG_SIZE)
 # Или вручную
-sudo logrotate -f /etc/logrotate.d/dbseed
+sudo logrotate -Q /etc/logrotate.d/dbseed
 
 # Очистка старых логов
 find /var/log/dbseed/ -name "*.gz" -mtime +30 -delete
 ```
 
 ## Траблшутинг
-###  1. Настройка pg_hba
+###  Настройка pg_hba
 ```bash
 ## проверка пути до конфига
 sudo -u postgres psql -d postgres -c 'SHOW hba_file;'
@@ -175,7 +175,7 @@ echo "local   all   postgres   peer" >> /var/lib/pgsql/18/data/pg_hba.conf
 sudo -u postgres psql -d postgres -c 'SELECT pg_reload_conf();'
 ```
 
-###  2. Ошибка отсутствия роли
+###  Ошибка отсутствия роли
 При запуске скрипта ошибка:
 ```bash
 psql:../knowledgebase_content_deployer (2).sql:26: ERROR: role "role_name" does not exist
