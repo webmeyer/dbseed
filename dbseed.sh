@@ -3,6 +3,8 @@
 
 set -Eeuo pipefail
 
+VERSION="0.3.0"
+
 LOG_FILE="${LOG_FILE:-${XDG_STATE_HOME:-${HOME:-.}/.local/state}/dbseed/dbseed.log}"
 LOG_LEVEL="${LOG_LEVEL:-INFO}"
 MAX_LOG_SIZE="${MAX_LOG_SIZE:-10M}"
@@ -40,6 +42,7 @@ show_usage() {
     -q, --query <запрос>     Выполнить SQL-запрос; можно указать несколько раз
     -Q, --query-file <файл>  Выполнить SQL-файл; можно указать несколько раз
     -v, --verbose            Показывать вывод psql при импорте дампа
+    -V, --version            Показать версию скрипта
 
 Запросы -q и файлы запросов -Q выполняются в порядке указания.
 Скрипт принимает текстовые SQL-файлы. Для архивных дампов PostgreSQL используйте pg_restore.
@@ -50,6 +53,13 @@ if [[ "${1-}" == "-h" || "${1-}" == "--help" ]]; then
     show_usage
     exit 0
 fi
+
+for arg in "$@"; do
+    if [[ "$arg" == "-V" || "$arg" == "--version" ]]; then
+        printf 'dbseed.sh %s\n' "$VERSION"
+        exit 0
+    fi
+done
 
 die() {
     print_error "$*"
@@ -184,11 +194,20 @@ require_value() {
 if ! init_logging; then
     exit 1
 fi
+log INFO "Версия dbseed.sh: $VERSION"
 print_info "Скрипт запущен"
 
 # Разбор аргументов.
 while (($# > 0)); do
     case "$1" in
+        -c|--cleanup)
+            CLEANUP=true
+            shift
+            ;;
+        -C|--cleanup-yes)
+            CONFIRM_CLEANUP=true
+            shift
+            ;;
         -d|--db-name)
             require_value "$1" "${2-}"
             DB_NAME="$2"
@@ -196,6 +215,14 @@ while (($# > 0)); do
             ;;
         -D|--drop-old-db)
             DROP_OLD=true
+            shift
+            ;;
+        -h|--help)
+            show_usage
+            exit 0
+            ;;
+        -l|--list-tables)
+            LIST_TABLES=true
             shift
             ;;
         -o|--output-file)
@@ -208,12 +235,8 @@ while (($# > 0)); do
             [[ -n "$OUTPUT_FILE" ]] || die "Для --output-file укажите путь к файлу"
             shift
             ;;
-        -v|--verbose)
-            VERBOSE=true
-            shift
-            ;;
-        -l|--list-tables)
-            LIST_TABLES=true
+        -p|--post-connect)
+            POST_CONNECT=true
             shift
             ;;
         -q|--query)
@@ -228,20 +251,12 @@ while (($# > 0)); do
             TASK_VALUES+=("$2")
             shift 2
             ;;
-        -p|--post-connect)
-            POST_CONNECT=true
+        -v|--verbose)
+            VERBOSE=true
             shift
             ;;
-        -c|--cleanup)
-            CLEANUP=true
-            shift
-            ;;
-        -C|--cleanup-yes)
-            CONFIRM_CLEANUP=true
-            shift
-            ;;
-        -h|--help)
-            show_usage
+        -V|--version)
+            printf 'dbseed.sh %s\n' "$VERSION"
             exit 0
             ;;
         -*)
