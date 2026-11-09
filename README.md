@@ -138,7 +138,7 @@ LOG_FILE="" ./dbseed.sh backup.sql
 ### Просмотр логов
 ```bash
 # Просмотр последних записей
-tail -Q /var/log/dbseed/dbseed.log
+tail -f /var/log/dbseed/dbseed.log
 
 # Поиск ошибок
 grep "ERROR" /var/log/dbseed/dbseed.log
@@ -155,7 +155,7 @@ grep -c "ERROR" /var/log/dbseed/dbseed.log
 ```bash
 # Автоматическая ротация (при превышении MAX_LOG_SIZE)
 # Или вручную
-sudo logrotate -Q /etc/logrotate.d/dbseed
+sudo logrotate -f /etc/logrotate.d/dbseed
 
 # Очистка старых логов
 find /var/log/dbseed/ -name "*.gz" -mtime +30 -delete
