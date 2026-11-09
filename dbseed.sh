@@ -20,6 +20,7 @@ declare -a TASK_TYPES=()
 declare -a TASK_VALUES=()
 
 USE_USQL=false
+VERBOSE=false
 
 show_usage() {
     cat <<EOF
@@ -193,6 +194,10 @@ while (($# > 0)); do
             ;;
         -o|--drop-old)
             DROP_OLD=true
+            shift
+            ;;
+        -v|--verbose)
+            VERBOSE=true
             shift
             ;;
         -l|--list-tables)
@@ -392,7 +397,13 @@ sudo -u postgres createdb "$DB_NAME"
 print_success "БД создана"
 
 print_info "Импорт дампа: $SQL_FILE"
-psql_as_postgres -d "$DB_NAME" -f "$SQL_FILE"
+
+if [[ "$VERBOSE" == true ]]; then
+    psql_as_postgres -e -d "$DB_NAME" -f "$SQL_FILE"
+else
+    psql_as_postgres -d "$DB_NAME" -f "$SQL_FILE" >/dev/null
+fi
+
 print_success "Дамп импортирован"
 
 for ((i = 0; i < ${#TASK_TYPES[@]}; i++)); do
