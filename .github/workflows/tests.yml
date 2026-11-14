@@ -1,0 +1,23 @@
+name: Bats tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  bats:
+    name: Run Bats tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Bats
+        uses: bats-core/bats-action@4.1.0
+
+      - name: Run tests
+        run: bats --print-output-on-failure tests/dbseed.bats
