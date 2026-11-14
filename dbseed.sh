@@ -423,7 +423,7 @@ if [[ "$DB_EXISTS" == "1" ]]; then
         psql_as_postgres \
             -v "dbname=$DB_NAME" \
             -d postgres \
-            -c "DROP DATABASE \"$DB_NAME\";"
+            -c "DROP DATABASE \"$DB_NAME\";" >/dev/null
     else
         die "БД '$DB_NAME' уже существует. Для её удаления укажите --drop-old"
     fi
